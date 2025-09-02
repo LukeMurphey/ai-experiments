@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Key Chatter Detector</title>
+    <style>
+        :root {
+            --bg-color: #1a1a1a;
+            --text-color: #ffffff;
+            --input-bg: #2d2d2d;
+            --accent-color: #646cff;
+            --border-color: #3a3a3a;
+            --highlight: #4a4a4a;
+        }
+
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 20px;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+        }
+
+        .container {
+            max-width: 800px;
+            width: 100%;
+        }
+
+        h1 {
+            color: var(--text-color);
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .input-group {
+            margin-bottom: 1.5rem;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 0.5rem;
+            color: var(--text-color);
+        }
+
+        input[type="number"],
+        textarea {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            background-color: var(--input-bg);
+            color: var(--text-color);
+            font-size: 1rem;
+            transition: border-color 0.3s ease;
+        }
+
+        input[type="number"]:focus,
+        textarea:focus {
+            outline: none;
+            border-color: var(--accent-color);
+        }
+
+        textarea {
+            min-height: 150px;
+            resize: vertical;
+        }
+
+        .results {
+            background-color: var(--input-bg);
+            border-radius: 6px;
+            padding: 1rem;
+            margin-top: 1.5rem;
+        }
+
+        .chatter-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
+        .stat-card {
+            background-color: var(--highlight);
+            padding: 0.75rem;
+            border-radius: 4px;
+            text-align: center;
+        }
+
+        .stat-card .key {
+            font-size: 1.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-card .count {
+            font-size: 1rem;
+            color: var(--accent-color);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Key Chatter Detector</h1>
+        
+        <div class="input-group">
+            <label for="timeframe">Detection Timeframe (milliseconds):</label>
+            <input type="number" id="timeframe" value="50" min="1" max="1000">
+        </div>
+
+        <div class="input-group">
+            <label for="textInput">Type here to test for key chatter:</label>
+            <textarea id="textInput" placeholder="Start typing to detect key chatter..."></textarea>
+        </div>
+
+        <div class="results">
+            <h3>Detected Key Chatter:</h3>
+            <div id="chatterStats" class="chatter-stats"></div>
+        </div>
+    </div>
+
+    <script>
+        class KeyChatterDetector {
+            constructor(timeframeMs = 50) {
+                this.timeframeMs = timeframeMs;
+                this.keyPresses = new Map();
+                this.chatterCounts = new Map();
+            }
+
+            reset() {
+                this.keyPresses.clear();
+                this.chatterCounts.clear();
+            }
+
+            updateTimeframe(ms) {
+                this.timeframeMs = ms;
+                this.reset();
+            }
+
+            processKeyPress(key) {
+                const now = Date.now();
+                const lastPress = this.keyPresses.get(key);
+
+                if (lastPress && (now - lastPress) <= this.timeframeMs) {
+                    // Increment chatter count
+                    this.chatterCounts.set(key, (this.chatterCounts.get(key) || 0) + 1);
+                }
+
+                this.keyPresses.set(key, now);
+                return this.getStats();
+            }
+
+            getStats() {
+                return Array.from(this.chatterCounts.entries())
+                    .map(([key, count]) => ({ key, count }))
+                    .sort((a, b) => b.count - a.count);
+            }
+        }
+
+        // Initialize the detector
+        const detector = new KeyChatterDetector(50);
+
+        // DOM Elements
+        const timeframeInput = document.getElementById('timeframe');
+        const textInput = document.getElementById('textInput');
+        const chatterStats = document.getElementById('chatterStats');
+
+        // Update timeframe when changed
+        timeframeInput.addEventListener('input', (e) => {
+            const value = parseInt(e.target.value, 10);
+            if (value > 0) {
+                detector.updateTimeframe(value);
+                updateStatsDisplay();
+            }
+        });
+
+        // Process keypresses
+        textInput.addEventListener('keydown', (e) => {
+            const stats = detector.processKeyPress(e.key);
+            updateStatsDisplay(stats);
+        });
+
+        function updateStatsDisplay(stats = detector.getStats()) {
+            chatterStats.innerHTML = stats
+                .map(({ key, count }) => `
+                    <div class="stat-card">
+                        <div class="key">${key === ' ' ? 'Space' : key}</div>
+                        <div class="count">${count}</div>
+                    </div>
+                `)
+                .join('');
+        }
+    </script>
+</body>
+</html>

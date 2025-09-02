@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Keypress Counter</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #121212;
+            color: #e0e0e0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+        }
+        input, textarea {
+            width: 80%;
+            padding: 10px;
+            margin: 5px 0;
+            border: none;
+            background-color: #333;
+            color: #e0e0e0;
+        }
+        textarea {
+            height: 200px;
+        }
+        .results {
+            width: 80%;
+            padding: 10px;
+            margin-top: 20px;
+            border: none;
+            background-color: #333;
+            color: #e0e0e0;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Keypress Counter</h1>
+    <input type="number" id="timeThreshold" placeholder="Time threshold (ms)" value="50">
+    <textarea id="textInput" placeholder="Type here..."></textarea>
+    <div class="results" id="results"></div>
+
+    <script>
+        let keyPressCount = {};
+        let lastKeyPressTimestamp = {};
+
+        document.getElementById('textInput').addEventListener('keydown', function(event) {
+            const charCode = event.keyCode || event.which;
+            const timeThreshold = parseInt(document.getElementById('timeThreshold').value, 10) || 50;
+
+            if (lastKeyPressTimestamp[charCode]) {
+                const currentTime = Date.now();
+                const elapsedTime = currentTime - lastKeyPressTimestamp[charCode];
+
+                if (elapsedTime <= timeThreshold) {
+                    keyPressCount[charCode] = (keyPressCount[charCode] || 0) + 1;
+                }
+            }
+
+            lastKeyPressTimestamp[charCode] = Date.now();
+        });
+
+        document.getElementById('textInput').addEventListener('keyup', function() {
+            displayResults();
+        });
+
+        function displayResults() {
+            const resultsDiv = document.getElementById('results');
+            let resultText = '';
+
+            for (const charCode in keyPressCount) {
+                if (keyPressCount[charCode] > 0) {
+                    const char = String.fromCharCode(charCode);
+                    resultText += `${char}: ${keyPressCount[charCode]} duplicates\n`;
+                }
+            }
+
+            resultsDiv.textContent = resultText;
+        }
+    </script>
+
+</body>
+</html>

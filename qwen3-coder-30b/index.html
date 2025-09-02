@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Duplicate Keypress Counter</title>
+    <style>
+        :root {
+            --bg-primary: #121212;
+            --bg-secondary: #1e1e1e;
+            --text-primary: #e0e0e0;
+            --text-secondary: #a0a0a0;
+            --accent: #bb86fc;
+            --accent-hover: #3700b3;
+            --error: #cf6679;
+            --success: #4caf50;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding: 20px;
+            border-bottom: 1px solid var(--bg-secondary);
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            color: var(--accent);
+        }
+
+        .subtitle {
+            color: var(--text-secondary);
+            font-size: 1.1rem;
+        }
+
+        .input-section {
+            background-color: var(--bg-secondary);
+            padding: 25px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .input-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+        }
+
+        input[type="number"] {
+            width: 100%;
+            padding: 12px;
+            background-color: #2d2d2d;
+            border: 1px solid #444;
+            border-radius: 6px;
+            color: var(--text-primary);
+            font-size: 1rem;
+        }
+
+        input[type="number"]:focus {
+            outline: none;
+            border-color: var(--accent);
+        }
+
+        .input-group:last-child {
+            margin-bottom: 0;
+        }
+
+        #textInput {
+            width: 100%;
+            height: 150px;
+            padding: 15px;
+            background-color: #2d2d2d;
+            border: 1px solid #444;
+            border-radius: 6px;
+            color: var(--text-primary);
+            font-size: 1.1rem;
+            resize: vertical;
+        }
+
+        #textInput:focus {
+            outline: none;
+            border-color: var(--accent);
+        }
+
+        .results-section {
+            background-color: var(--bg-secondary);
+            padding: 25px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .section-title {
+            font-size: 1.5rem;
+            margin-bottom: 20px;
+            color: var(--accent);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        #results {
+            min-height: 100px;
+        }
+
+        .duplicate-item {
+            background-color: rgba(187, 134, 252, 0.1);
+            border-left: 3px solid var(--accent);
+            padding: 15px;
+            margin-bottom: 15px;
+            border-radius: 0 6px 6px 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .char-display {
+            font-size: 1.8rem;
+            font-weight: bold;
+            color: var(--accent);
+        }
+
+        .count-display {
+            font-size: 1.2rem;
+            background-color: rgba(187, 134, 252, 0.2);
+            padding: 5px 12px;
+            border-radius: 20px;
+        }
+
+        .no-duplicates {
+            text-align: center;
+            color: var(--text-secondary);
+            font-style: italic;
+            padding: 20px;
+        }
+
+        .time-info {
+            margin-top: 10px;
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+
+        .highlight {
+            background-color: rgba(187, 134, 252, 0.3);
+            padding: 2px 4px;
+            border-radius: 3px;
+        }
+
+        @media (max-width: 600px) {
+            .container {
+                padding: 10px;
+            }
+            
+            h1 {
+                font-size: 2rem;
+            }
+            
+            .input-section, .results-section {
+                padding: 15px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Duplicate Keypress Counter</h1>
+            <p class="subtitle">Detects repeated keypresses within a specified time window</p>
+        </header>
+
+        <section class="input-section">
+            <div class="input-group">
+                <label for="timeWindow">Time Window (milliseconds)</label>
+                <input type="number" id="timeWindow" min="1" value="50">
+                <p class="time-info">Keys pressed within this time frame will be counted as duplicates</p>
+            </div>
+            
+            <div class="input-group">
+                <label for="textInput">Type here to test:</label>
+                <textarea id="textInput" placeholder="Start typing to see duplicate keypresses detected..."></textarea>
+            </div>
+        </section>
+
+        <section class="results-section">
+            <h2 class="section-title">Duplicate Keypresses</h2>
+            <div id="results">
+                <p class="no-duplicates">No duplicate keypresses detected yet. Start typing to see results.</p>
+            </div>
+        </section>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const timeWindowInput = document.getElementById('timeWindow');
+            const textInput = document.getElementById('textInput');
+            const resultsDiv = document.getElementById('results');
+            
+            // Store keypress timestamps
+            let keypresses = [];
+            // Store duplicate counts per character
+            let duplicates = {};
+            
+            // Initialize with default value
+            let timeWindow = parseInt(timeWindowInput.value);
+            
+            // Update time window when changed
+            timeWindowInput.addEventListener('change', function() {
+                timeWindow = parseInt(this.value) || 50;
+            });
+            
+            // Handle keypress events
+            textInput.addEventListener('keydown', function(e) {
+                const currentTime = Date.now();
+                const key = e.key;
+                
+                // Store the keypress with timestamp
+                keypresses.push({
+                    key: key,
+                    time: currentTime
+                });
+                
+                // Remove old keypresses outside the time window
+                keypresses = keypresses.filter(kp => currentTime - kp.time <= timeWindow);
+                
+                // Check for duplicates
+                checkForDuplicates();
+            });
+            
+            function checkForDuplicates() {
+                // Clear current duplicates
+                duplicates = {};
+                
+                // Count occurrences of each key in the current window
+                const keyCounts = {};
+                keypresses.forEach(kp => {
+                    if (keyCounts[kp.key]) {
+                        keyCounts[kp.key]++;
+                    } else {
+                        keyCounts[kp.key] = 1;
+                    }
+                });
+                
+                // Find keys that appear more than once
+                for (const [key, count] of Object.entries(keyCounts)) {
+                    if (count > 1) {
+                        duplicates[key] = count;
+                    }
+                }
+                
+                // Update display
+                updateResults();
+            }
+            
+            function updateResults() {
+                if (Object.keys(duplicates).length === 0) {
+                    resultsDiv.innerHTML = '<p class="no-duplicates">No duplicate keypresses detected yet. Start typing to see results.</p>';
+                    return;
+                }
+                
+                let html = '';
+                for (const [key, count] of Object.entries(duplicates)) {
+                    const charDisplay = key === ' ' ? '&nbsp;' : 
+                                       key === '\t' ? 'TAB' : 
+                                       key === '\n' ? 'ENTER' : key;
+                    
+                    html += `
+                        <div class="duplicate-item">
+                            <div>
+                                <span class="char-display">${charDisplay}</span>
+                            </div>
+                            <div>
+                                <span class="count-display">${count} duplicates</span>
+                            </div>
+                        </div>
+                    `;
+                }
+                
+                resultsDiv.innerHTML = html;
+            }
+            
+            // Add example text to demonstrate functionality
+            textInput.addEventListener('focus', function() {
+                if (this.value === '') {
+                    this.value = 'Try typing the same key multiple times quickly! ';
+                }
+            });
+        });
+    </script>
+</body>
+</html>

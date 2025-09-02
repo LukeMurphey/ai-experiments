@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Duplicate Keypress Detector</title>
+  <style>
+    :root {
+      --background: #181924;
+      --foreground: #ffffff;
+      --accent: #4fd1c5;
+      --surface: #23253b;
+      --error: #ee6363;
+      --success: #3ce183;
+      --input-bg: #191b26;
+      --input-border: #393e5c;
+      --font: 'Inter', Arial, sans-serif;
+    }
+    html, body {
+      height: 100%;
+      margin: 0;
+      font-family: var(--font);
+      background: var(--background);
+      color: var(--foreground);
+      transition: background 0.2s, color 0.2s;
+    }
+    .container {
+      max-width: 420px;
+      margin: 3vw auto;
+      background: var(--surface);
+      border-radius: 20px;
+      box-shadow: 0 5px 24px 1px #1114;
+      padding: 2.5rem 2rem 2rem 2rem;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 2.2rem;
+    }
+    h1 {
+      font-weight: 700;
+      margin: 0 0 0.25em 0;
+      letter-spacing: 1px;
+      font-size: 2.2rem;
+      color: var(--accent);
+      text-align: center;
+    }
+    .desc {
+      color: #bac2ec;
+      text-align: center;
+      font-size: 1rem;
+      margin-bottom: 0.4rem;
+    }
+    .inputs {
+      display: flex;
+      flex-direction: column;
+      gap: 0.9rem;
+      width: 100%;
+      align-items: center;
+    }
+    .input-label {
+      font-size: 1.08rem;
+      margin-bottom: 0.18rem;
+      color: #b8b8c2;
+      display: block;
+    }
+    .input-group {
+      display: flex;
+      flex-direction: column;
+      width: 100%;
+      max-width: 310px;
+    }
+    input[type="number"], input[type="text"] {
+      background: var(--input-bg);
+      border: 2px solid var(--input-border);
+      border-radius: 6px;
+      height: 2.5rem;
+      color: var(--foreground);
+      padding: 0 0.8rem;
+      font-size: 1.07rem;
+      transition: border 0.2s;
+      width: 100%;
+    }
+    input[type="number"]:focus, input[type="text"]:focus {
+      outline: none;
+      border: 2px solid var(--accent);
+    }
+    input[type="number"]::-webkit-inner-spin-button, 
+    input[type="number"]::-webkit-outer-spin-button { 
+      opacity: 0.3;
+    }
+    .output {
+      width: 100%;
+      background: var(--input-bg);
+      border-radius: 11px;
+      box-shadow: 0 1.5px 11px #182e3e38;
+      padding: 1.2rem 1rem;
+      min-height: 92px;
+      color: var(--foreground);
+      line-height: 1.8;
+      margin-top: 18px;
+      font-size: 1.04rem;
+      font-family: 'Fira Mono', monospace;
+      letter-spacing: 0.02em;
+    }
+
+    .stats-list {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+    .stats-list li {
+      background: #2b2e43;
+      margin-bottom: 7px;
+      padding: 0.4rem 0.9rem;
+      border-radius: 6px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 1.08rem;
+      letter-spacing: 0.1em;
+    }
+    .key {
+      color: var(--accent);
+      font-weight: bold;
+      font-family: 'Fira Mono', monospace;
+    }
+    .count {
+      color: var(--success);
+      font-weight: 600;
+    }
+    @media (max-width: 600px) {
+      .container { padding: 1.3rem 0.4rem 1rem 0.4rem; }
+      h1 { font-size: 1.25rem; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Duplicate Keypress Detector</h1>
+    <div class="desc">Counts how many times the same key is pressed more than once within a short interval.<br>
+      A “duplicate” means pressing the same key twice within the set time (<span id="msDisplay" style="color: var(--accent);">50</span> ms).</div>
+    <div class="inputs">
+      <div class="input-group">
+        <label class="input-label" for="ms">Duplicate time-frame (ms):</label>
+        <input id="ms" type="number" min="10" max="3000" step="1" value="50"/>
+      </div>
+      <div class="input-group">
+        <label class="input-label" for="textInput">Type here:</label>
+        <input id="textInput" type="text" spellcheck="false" autocomplete="off"
+          autocorrect="off" autocapitalize="off" autofocus placeholder="Start typing..."/>
+      </div>
+    </div>
+    <div class="output">
+      <strong>Duplicate keypresses:</strong>
+      <ul class="stats-list" id="dupList">
+        <!-- Stats will appear here -->
+      </ul>
+      <div style="font-size:0.98rem;color:#888;padding-top:0.7em;" id="none">None detected yet.</div>
+    </div>
+  </div>
+  <script>
+    // State for last key timestamps and duplicate counts
+    const lastPress = {};
+    const dupCounts = {};
+
+    const msInput = document.getElementById('ms');
+    const msDisplay = document.getElementById('msDisplay');
+    const textInput = document.getElementById('textInput');
+    const dupList = document.getElementById('dupList');
+    const noneMsg = document.getElementById('none');
+
+    msInput.addEventListener('input', () => {
+      let ms = Math.max(10, Math.min(3000, Number(msInput.value) || 50));
+      msInput.value = ms;
+      msDisplay.textContent = ms;
+    });
+
+    textInput.addEventListener('keydown', (e) => {
+      // Only count regular characters; skip control/meta keys
+      if (e.key.length !== 1) return;
+      const key = e.key;
+      const now = performance.now();
+      const ms = Math.max(10, Math.min(3000, Number(msInput.value) || 50));
+      if (lastPress[key] && (now - lastPress[key]) <= ms) {
+        dupCounts[key] = (dupCounts[key] || 0) + 1;
+        updateDisplay();
+      }
+      lastPress[key] = now;
+    });
+
+    function updateDisplay() {
+      dupList.innerHTML = '';
+      const keys = Object.keys(dupCounts).filter(k => dupCounts[k] > 0);
+      if (keys.length === 0) {
+        noneMsg.style.display = '';
+        return;
+      }
+      noneMsg.style.display = 'none';
+      keys.sort();
+      keys.forEach(k => {
+        const li = document.createElement('li');
+        li.innerHTML = `<span class="key">${k}</span> <span class="count">×${dupCounts[k]}</span>`;
+        dupList.appendChild(li);
+      });
+    }
+  </script>
+</body>
+</html>

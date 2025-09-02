@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Duplicate Keypress Counter</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #2c3e50;
+            color: #ecf0f1;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+        }
+
+        .container {
+            background-color: #34495e;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+            width: 100%;
+            max-width: 500px;
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .controls {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 20px;
+        }
+
+        input[type="number"] {
+            padding: 8px 12px;
+            border-radius: 4px;
+            border: none;
+            background-color: #7f8c8d;
+            color: #ecf0f1;
+            width: 60%;
+        }
+
+        textarea {
+            width: 100%;
+            padding: 10px;
+            border-radius: 4px;
+            border: none;
+            background-color: #7f8c8d;
+            color: #ecf0f1;
+            resize: vertical;
+            min-height: 100px;
+        }
+
+        .results {
+            margin-top: 20px;
+        }
+
+        .duplicate-entry {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid #5a6974;
+        }
+
+        button {
+            background-color: #e74c3c;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        button:hover {
+            background-color: #c0392b;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Duplicate Keypress Counter</h1>
+
+        <div class="controls">
+            <input type="number" id="timeframe" min="1" value="50" placeholder="Timeframe (ms)">
+            <button id="reset">Reset</button>
+        </div>
+
+        <textarea id="textInput" placeholder="Start typing..."></textarea>
+
+        <div class="results" id="results">
+            <!-- Results will appear here -->
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const textInput = document.getElementById('textInput');
+            const timeframeInput = document.getElementById('timeframe');
+            const resultsDiv = document.getElementById('results');
+            const resetButton = document.getElementById('reset');
+
+            let keyPressMap = {};
+            let timeframe = parseInt(timeframeInput.value);
+
+            function updateTimeframe() {
+                timeframe = parseInt(timeframeInput.value) || 50;
+            }
+
+            textInput.addEventListener('keydown', function(e) {
+                const currentTime = Date.now();
+                const key = e.key;
+
+                if (key.length === 1) { // Only consider printable characters
+                    if (!keyPressMap[key]) {
+                        keyPressMap[key] = [];
+                    }
+
+                    // Remove stale entries
+                    const validEntries = keyPressMap[key].filter(entry => currentTime - entry.timestamp < timeframe);
+                    keyPressMap[key] = validEntries;
+
+                    // If this is a duplicate within the timeframe, update count
+                    if (validEntries.length > 0 && currentTime - validEntries[validEntries.length - 1].timestamp < timeframe) {
+                        validEntries[validEntries.length - 1].count++;
+                    } else {
+                        keyPressMap[key].push({ timestamp: currentTime, count: 2 });
+                    }
+
+                    updateResults();
+                }
+            });
+
+            function updateResults() {
+                resultsDiv.innerHTML = '';
+
+                for (const key in keyPressMap) {
+                    const entries = keyPressMap[key];
+                    // Only show keys that have duplicates
+                    if (entries.some(entry => entry.count > 1)) {
+                        for (const entry of entries) {
+                            if (entry.count > 1) {
+                                const div = document.createElement('div');
+                                div.className = 'duplicate-entry';
+                                div.innerHTML = `
+                                    <span>${key}</span>
+                                    <span>x${entry.count - 1}</span>
+                                `;
+                                resultsDiv.appendChild(div);
+                            }
+                        }
+                    }
+                }
+            }
+
+            resetButton.addEventListener('click', function() {
+                keyPressMap = {};
+                textInput.value = '';
+                resultsDiv.innerHTML = '';
+                updateTimeframe();
+            });
+
+            timeframeInput.addEventListener('change', updateTimeframe);
+
+            // Initial timeframe setting
+            updateTimeframe();
+        });
+    </script>
+</body>
+</html>

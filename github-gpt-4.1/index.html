@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Duplicate Keypress Counter</title>
+  <style>
+    body {
+      background: #181a1b;
+      color: #f1f1f1;
+      font-family: 'Segoe UI', Arial, sans-serif;
+      min-height: 100vh;
+      margin: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      padding: 40px 0;
+    }
+    .container {
+      background: #23272b;
+      border-radius: 16px;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.4);
+      padding: 32px 28px 28px 28px;
+      max-width: 420px;
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
+    h1 {
+      font-size: 1.7rem;
+      font-weight: 600;
+      margin: 0 0 10px 0;
+      letter-spacing: 0.02em;
+      color: #7ecfff;
+      text-align: center;
+    }
+    label {
+      font-size: 1rem;
+      margin-bottom: 6px;
+      color: #b0b8c1;
+    }
+    input[type="number"] {
+      width: 100%;
+      padding: 8px 12px;
+      border-radius: 8px;
+      border: none;
+      background: #1a1d1f;
+      color: #f1f1f1;
+      font-size: 1rem;
+      margin-bottom: 10px;
+      outline: none;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.08);
+      transition: background 0.2s;
+    }
+    input[type="number"]:focus {
+      background: #23272b;
+    }
+    textarea {
+      width: 100%;
+      min-height: 80px;
+      max-height: 200px;
+      padding: 10px 12px;
+      border-radius: 8px;
+      border: none;
+      background: #1a1d1f;
+      color: #f1f1f1;
+      font-size: 1.1rem;
+      resize: vertical;
+      outline: none;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.08);
+      transition: background 0.2s;
+    }
+    textarea:focus {
+      background: #23272b;
+    }
+    .results {
+      background: #181a1b;
+      border-radius: 10px;
+      padding: 16px 12px;
+      margin-top: 8px;
+      min-height: 40px;
+      font-size: 1.08rem;
+      color: #e6e6e6;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.12);
+    }
+    .char {
+      display: inline-block;
+      background: #2a2e32;
+      color: #7ecfff;
+      border-radius: 6px;
+      padding: 2px 8px;
+      margin: 2px 6px 2px 0;
+      font-weight: 500;
+      font-size: 1.08rem;
+    }
+    .count {
+      color: #ffb86c;
+      font-weight: 600;
+      margin-left: 4px;
+    }
+    @media (max-width: 600px) {
+      .container {
+        padding: 18px 6px 18px 6px;
+        max-width: 98vw;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Duplicate Keypress Counter</h1>
+    <div>
+      <label for="msInput">Duplicate threshold (ms):</label>
+      <input type="number" id="msInput" min="1" value="50">
+    </div>
+    <div>
+      <label for="textInput">Type here:</label>
+      <textarea id="textInput" autocomplete="off" spellcheck="false" placeholder="Start typing..."></textarea>
+    </div>
+    <div class="results" id="results">
+      No duplicate keypresses detected yet.
+    </div>
+  </div>
+  <script>
+    const msInput = document.getElementById('msInput');
+    const textInput = document.getElementById('textInput');
+    const results = document.getElementById('results');
+
+    let threshold = parseInt(msInput.value, 10);
+    let lastKeyTimes = {};
+    let duplicateCounts = {};
+
+    msInput.addEventListener('input', () => {
+      threshold = parseInt(msInput.value, 10) || 50;
+      // Reset state on threshold change
+      lastKeyTimes = {};
+      duplicateCounts = {};
+      updateResults();
+    });
+
+    function updateResults() {
+      if (Object.keys(duplicateCounts).length === 0) {
+        results.textContent = 'No duplicate keypresses detected yet.';
+        return;
+      }
+      results.innerHTML = '';
+      for (const [char, count] of Object.entries(duplicateCounts)) {
+        const span = document.createElement('span');
+        span.className = 'char';
+        span.textContent = char;
+        const countSpan = document.createElement('span');
+        countSpan.className = 'count';
+        countSpan.textContent = `×${count}`;
+        span.appendChild(countSpan);
+        results.appendChild(span);
+      }
+    }
+
+    textInput.addEventListener('keydown', (e) => {
+      if (e.key.length === 1) { // Only count printable characters
+        const now = Date.now();
+        const key = e.key;
+        if (lastKeyTimes[key] && (now - lastKeyTimes[key] <= threshold)) {
+          duplicateCounts[key] = (duplicateCounts[key] || 0) + 1;
+          updateResults();
+        }
+        lastKeyTimes[key] = now;
+      }
+    });
+
+    textInput.addEventListener('input', () => {
+      // If user pastes or deletes, reset state
+      lastKeyTimes = {};
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Real-time Keypress Duplicator Counter</title>
+    <style>
+        :root {
+            --primary: #6c5ce7;
+            --secondary: #4a86ff;
+            --dark: #121212;
+            --light: #f5f5f5;
+            --gray: #b0bec5;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: var(--dark);
+            color: var(--light);
+            line-height: 1.6;
+            padding: 2rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        h1 {
+            color: var(--primary);
+            font-size: 2.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        p {
+            color: var(--gray);
+            font-size: 1.2rem;
+        }
+
+        .input-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1rem;
+            margin-bottom: 2rem;
+            width: 100%;
+            max-width: 600px;
+        }
+
+        label {
+            color: var(--light);
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            text-align: left;
+        }
+
+        input, button {
+            padding: 0.75rem;
+            border-radius: 5px;
+            border: none;
+            background-color: var(--dark);
+            color: var(--light);
+            transition: all 0.3s ease;
+            flex: 1;
+        }
+
+        input:focus, button:focus {
+            outline: none;
+            box-shadow: 0 0 0 2px rgba(108, 92, 231, 0.5);
+        }
+
+        button {
+            background-color: var(--primary);
+            color: white;
+            cursor: pointer;
+            font-weight: 600;
+        }
+
+        button:hover {
+            background-color: var(--secondary);
+        }
+
+        .result-container {
+            text-align: left;
+            width: 100%;
+            max-width: 800px;
+        }
+
+        h2 {
+            color: var(--primary);
+            font-size: 1.8rem;
+            margin-bottom: 1rem;
+        }
+
+        .duplicate-counts {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+
+        .count-item {
+            background-color: var(--dark);
+            border-radius: 5px;
+            padding: 0.5rem;
+            min-width: 120px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+        }
+
+        .count-item:hover {
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        .character {
+            font-weight: 600;
+            color: var(--light);
+            display: block;
+            margin-bottom: 0.25rem;
+        }
+
+        .count {
+            color: var(--gray);
+            font-size: 0.85rem;
+        }
+
+        @media (max-width: 600px) {
+            h1 {
+                font-size: 2rem;
+            }
+            p {
+                font-size: 1rem;
+            }
+            .input-container {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Real-time Keypress Duplicator Counter</h1>
+        <p>Track duplicated keypresses and identify patterns in your typing.</p>
+    </header>
+
+    <div class="input-container">
+        <label for="timeframe">Timeframe (ms) for duplicate detection:</label>
+        <input type="number" id="timeframe" name="timeframe" value="50" min="10" max="1000">
+    </div>
+
+    <div class="result-container">
+        <h2>Duplicate Keypress Statistics</h2>
+        <div class="duplicate-counts"></div>
+    </div>
+
+    <textarea id="textInput" placeholder="Start typing here..."></textarea>
+
+    <script>
+const timeFrameInput = document.getElementById('timeframe');
+const duplicateCountsDiv = document.querySelector('.duplicate-counts');
+const textInput = document.getElementById('textInput');
+
+let keypresses = {};
+
+function updateDuplicateCounts() {
+    // Clear previous counts
+    duplicateCountsDiv.innerHTML = '';
+
+    // Create count items for each character with duplicates
+    for (const char in keypresses) {
+        if (keypresses[char].count > 1) {
+            const countItem = document.createElement('div');
+            countItem.classList.add('count-item');
+
+            const characterSpan = document.createElement('span');
+            characterSpan.classList.add('character');
+            characterSpan.textContent = char;
+
+            const countSpan = document.createElement('span');
+            countSpan.classList.add('count');
+            countSpan.textContent = `Count: ${keypresses[char].count}`;
+
+            countItem.appendChild(characterSpan);
+            countItem.appendChild(countSpan);
+            duplicateCountsDiv.appendChild(countItem);
+        }
+    }
+}
+
+function processKeypress(event) {
+    const char = event.key;
+    const currentTime = new Date().getTime();
+    const timeFrame = parseInt(timeFrameInput.value, 10);
+
+    if (!keypresses[char]) {
+        keypresses[char] = { timestamps: [], count: 0 };
+    }
+
+    keypresses[char].count++;
+    keypresses[char].timestamps.push(currentTime);
+
+    // Remove old entries outside the timeframe
+    while (
+        keypresses[char].timestamps.length > 0 &&
+        keypresses[char].timestamps[0] <= currentTime - timeFrame
+    ) {
+        keypresses[char].timestamps.shift();
+    }
+
+    updateDuplicateCounts();
+}
+
+// Add event listener for keypresses
+textInput.addEventListener('keypress', processKeypress);
+    </script>
+</body>
+</html>
